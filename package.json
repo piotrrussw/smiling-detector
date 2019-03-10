@@ -1,0 +1,11 @@
+{
+  "name": "smilling-detector",
+  "version": "1.0.0",
+  "dependencies": {
+    "expo": "^32.0.6",
+    "react-native": "^0.58.6"
+  },
+  "devDependencies": {
+    "@expo/vector-icons": "^9.0.0"
+  }
+}
