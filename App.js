@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, CameraRoll } from 'react-native';
-import { Constants, Camera, Permissions, FaceDetector, FileSystem } from 'expo';
-import { Ionicons, FontAwesome } from '@expo/vector-icons';
+import { Camera, Permissions, FaceDetector } from 'expo';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default class App extends React.Component {
     state = {
@@ -19,7 +19,7 @@ export default class App extends React.Component {
     handleFacesDetected = ({ faces }) => this.setState({ faces });
 
     renderFaces = () => {
-        const condition = this.state.faces.some(item => item.smilingProbability > 0.5);
+        const condition = this.state.faces.some(item => item.smilingProbability > 0.7);
 
         if(condition) {
             this.takePhoto();
@@ -29,43 +29,50 @@ export default class App extends React.Component {
             <View style={styles.facesContainer} pointerEvents="none">
             {this.state.faces.map(this.renderFace)}
             </View>
-    )
-    }
+        )
+    };
 
     takePhoto = async () => {
-        if(this.camera) {
+        if(this.camera && !this.state.photoTaken) {
+
             await this.camera.takePictureAsync({
                 onPictureSaved: (data) => {
                     CameraRoll.saveToCameraRoll(data.uri, 'photo');
+                    this.setState({ photoTaken: true });
+                    // disable taking next photo for 1s
+                    setTimeout(() => this.setState({
+                        photoTaken: false
+                    }), 1000)
                 }
             });
 
         }
-    }
+    };
 
-    renderFace({ bounds, faceID, rollAngle, yawAngle, smilingProbability }) {
+    flipCamera = () => {
+        return this.setState({
+            type: this.state.type === Camera.Constants.Type.back
+                          ? Camera.Constants.Type.front
+                          : Camera.Constants.Type.back
+        });
+    };
+
+    renderFace = ({ bounds, faceID, rollAngle, yawAngle, smilingProbability }) => {
         return (
-            <View
-        key={faceID}
-        transform={[
-                { perspective: 600 },
-        { rotateZ: `${rollAngle.toFixed(0)}deg` },
-        { rotateY: `${yawAngle.toFixed(0)}deg` },
-    ]}
-        style={[
-                styles.face,
-        {
-        ...bounds.size,
-            left: bounds.origin.x,
-            top: bounds.origin.y,
-        },
-    ]}>
-    <Text style={styles.faceText}>
-          😃 {(smilingProbability * 100).toFixed(0)}%
-    </Text>
-        </View>
-    );
-    }
+            <View key={ faceID }
+                transform={[
+                    { perspective: 600 },
+                    { rotateZ: `${rollAngle.toFixed(0)}deg` },
+                    { rotateY: `${yawAngle.toFixed(0)}deg` },
+                ]}
+                style={[styles.face,
+                    { ...bounds.size, left: bounds.origin.x, top: bounds.origin.y, }]}>
+                <Text style={styles.faceText}>
+                      😃 {(smilingProbability * 100).toFixed(0)}%
+                </Text>
+            </View>
+        );
+    };
 
     render() {
         const { hasCameraPermission } = this.state;
@@ -77,56 +84,34 @@ export default class App extends React.Component {
         } else {
             return (
                 <View style={{ flex: 1 }}>
-        <Camera
-            ref={ ref => { this.camera = ref }}
-            style={{ flex: 1 }}
-            type={this.state.type}
-            onFacesDetected={this.handleFacesDetected}
-            faceDetectorSettings={{
-                mode: FaceDetector.Constants.Mode.fast,
-                    detectLandmarks: FaceDetector.Constants.Landmarks.none,
-                    runClassifications: FaceDetector.Constants.Classifications.all,
-            }}>
-            {this.renderFaces()}
-        <View
-            style={{
-                flex: 1,
-                    backgroundColor: 'transparent',
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-            }}>
-        <TouchableOpacity
-            style={{
-                flex: 0.1,
-                    alignSelf: 'flex-end',
-                    alignItems: 'center',
-            }}
-            onPress={() => {
-                this.setState({
-                    type: this.state.type === Camera.Constants.Type.back
-                        ? Camera.Constants.Type.front
-                        : Camera.Constants.Type.back,
-                });
-            }}>
-        <Text
-            style={{ fontSize: 18, marginBottom: 10, color: 'white' }}>
-        <FontAwesome name="undo" size={25} style={{ color: '#ccc' }} />
-            </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-            style={{
-                flex: '0.1',
-                    alignItems: 'center',
-                    alignSelf: 'flex-end',
-            }}
-            onPress={() => this.takePhoto()}
-        >
-        <Text style={{ fontSize: 18, marginBottom: 10, color: 'white' }}>
-        <FontAwesome name="camera" size={25} style={{ color: '#ccc' }} />
-            </Text>
-            </TouchableOpacity>
-            </View>
-            </Camera>
+                    <Camera
+                        ref={ ref => { this.camera = ref }}
+                        style={{ flex: 1 }}
+                        type={this.state.type}
+                        onFacesDetected={ this.handleFacesDetected }
+                        faceDetectorSettings={{
+                            mode: FaceDetector.Constants.Mode.fast,
+                            detectLandmarks: FaceDetector.Constants.Landmarks.none,
+                            runClassifications: FaceDetector.Constants.Classifications.all,
+                        }}>
+
+                            {this.renderFaces()}
+
+                        <View style={styles.cameraView}>
+                            <TouchableOpacity style={styles.flipContainer} onPress={ this.flipCamera}>
+                                <Text style={{ fontSize: 18, marginBottom: 10, color: 'white' }}>
+                                    <FontAwesome name="undo" size={25} style={{ color: '#ccc' }} />
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.photoContainer} onPress={() => this.takePhoto()}>
+                                <Text style={{ fontSize: 18, marginBottom: 10, color: 'white' }}>
+                                    <FontAwesome name="camera" size={25} style={{ color: '#ccc' }} />
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+
+                </Camera>
             </View>
         );
         }
@@ -134,6 +119,22 @@ export default class App extends React.Component {
 }
 
 const styles = StyleSheet.create({
+    cameraView: {
+        flex: 1,
+        backgroundColor: 'transparent',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    flipContainer : {
+        flex: 0.1,
+        alignSelf: 'flex-end',
+        alignItems: 'center',
+    },
+    photoContainer : {
+        flex: '0.1',
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+    },
     facesContainer: {
         position: 'absolute',
         bottom: 0,

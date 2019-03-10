@@ -7,7 +7,7 @@ and estimates their smiling probability. If it is higher than
 
 ## Demo
 
-Live at: [LINK](https://snack.expo.io/@piotrrussw/smilling-app)
+Live at: [LINK](https://snack.expo.io/@piotrrussw/smiling-app)
 
 Open the link to Expo Snack and click Run, to run app on your device,
 remember that you need to have Expo Client installed on
